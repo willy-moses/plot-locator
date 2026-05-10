@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --green: #1D9E75;
+  --green-dark: #085041;
+  --green-mid: #0F6E56;
+  --green-light: #E1F5EE;
+  --green-pale: #9FE1CB;
+  --sand: #F7F4EE;
+  --ink: #1a1a18;
+  --ink-mid: #3a3a36;
+  --ink-soft: #6b6b64;
+  --blue: #378ADD;
+  --blue-light: #E6F1FB;
+  --orange: #D85A30;
+}
+
+html, body, #__next {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-outfit), sans-serif;
+}
+
+/* Leaflet overrides */
+.leaflet-routing-container { display: none !important; }
+
+.leaflet-popup-content-wrapper {
+  border-radius: 10px !important;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.18) !important;
+  font-family: var(--font-outfit), sans-serif !important;
+  padding: 0 !important;
+  overflow: hidden;
+}
+.leaflet-popup-content { margin: 0 !important; }
+.leaflet-popup-tip-container { display: none; }
+
+body {
+  font-family: 'Outfit', sans-serif;
+}
