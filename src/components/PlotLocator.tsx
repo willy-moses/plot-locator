@@ -5,7 +5,7 @@ import { useGeolocation } from '@/hooks/useGeolocation';
 import Sidebar          from './Sidebar';
 import Header           from './Header';
 import NavigationPanel  from './NavigationPanel';
-import MapView          from './MapView';
+import MapView, { type MapViewHandle } from './MapView';
 
 const COLORS = [
   '#1D9E75','#378ADD','#D85A30','#D4537E',
@@ -25,6 +25,7 @@ export default function PlotLocator() {
   const [banner,       setBanner]       = useState<string | null>(null);
   const geo            = useGeolocation();
   const bannerTimer    = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mapRef         = useRef<MapViewHandle>(null);
 
   const showBanner = useCallback((msg: string) => {
     setBanner(msg);
@@ -102,6 +103,7 @@ export default function PlotLocator() {
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
         <MapView
+          ref={mapRef}
           plots={plots}
           userLocation={liveLocation ?? geo.location}
           activeRouteId={activeRouteId}
@@ -140,7 +142,7 @@ export default function PlotLocator() {
           onRouteRequest={startRoute}
           onZoom={() => {}}
           onRemove={removePlot}
-          onFitAll={() => {}}
+          onFitAll={() => mapRef.current?.fitAll()}
           onClearAll={clearAll}
         />
       </div>

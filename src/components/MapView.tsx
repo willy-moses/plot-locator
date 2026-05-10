@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import type { Plot, NavStep } from '@/types';
 import 'leaflet/dist/leaflet.css';
 import type L from 'leaflet';
@@ -21,12 +21,16 @@ interface Props {
   onPositionUpdate: (lat: number, lng: number) => void;
 }
 
+export interface MapViewHandle {
+  fitAll: () => void;
+}
+
 declare global { interface Window { _routeTo: (id: number) => void; _L: typeof L } }
 
-export default function MapView({
-  plots, userLocation, activeRouteId,
-  onRouteFound, onRouteRequest, onPositionUpdate,
-}: Props) {
+const MapView = forwardRef<MapViewHandle, Props>(function MapView(
+  { plots, userLocation, activeRouteId, onRouteFound, onRouteRequest, onPositionUpdate },
+  ref,
+) {
   const mapRef        = useRef<L.Map | null>(null);
   const markerRefs    = useRef<Map<number, L.Marker>>(new Map());
   const userMarkerRef = useRef<L.CircleMarker | null>(null);
@@ -44,6 +48,39 @@ export default function MapView({
   useEffect(() => {
     window._routeTo = (id) => onRouteRequestRef.current(id);
   }, []);
+
+  // Expose fitAll to parent via ref
+  useImperativeHandle(ref, () => ({
+    fitAll() {
+      const map = mapRef.current;
+      if (!map) return;
+
+      const points: [number, number][] = [];
+
+      // Include all plot markers
+      for (const plot of plots) {
+        points.push([plot.lat, plot.lng]);
+      }
+
+      // Include user location if available
+      if (userLocation) {
+        points.push([userLocation.lat, userLocation.lng]);
+      }
+
+      if (points.length === 0) return;
+
+      if (points.length === 1) {
+        map.setView(points[0], 14, { animate: true });
+        return;
+      }
+
+      const L = window._L;
+      if (!L) return;
+
+      const bounds = L.latLngBounds(points.map(([lat, lng]) => L.latLng(lat, lng)));
+      map.fitBounds(bounds, { padding: [60, 60], animate: true });
+    },
+  }), [plots, userLocation]);
 
   // ── Init map ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -119,7 +156,7 @@ export default function MapView({
     })();
   }, [plots]);
 
-  // ── GPS watch — streams live position to parent during navigation ─────────
+  // ── GPS watch ─────────────────────────────────────────────────────────────
   useEffect(() => {
     if (activeRouteId === null) {
       if (watchIdRef.current !== null) {
@@ -133,7 +170,6 @@ export default function MapView({
       (pos) => {
         const { latitude: lat, longitude: lng } = pos.coords;
         onPositionRef.current(lat, lng);
-        // Move user dot smoothly
         if (mapRef.current && userMarkerRef.current) {
           userMarkerRef.current.setLatLng([lat, lng]);
         }
@@ -196,15 +232,14 @@ export default function MapView({
       }).addTo(mapRef.current);
       mapRef.current.fitBounds(routeLayerRef.current.getBounds(), { padding: [48, 48] });
 
-      // Build NavStep array from OSRM legs → steps
       const steps: NavStep[] = [];
       for (const leg of route.legs) {
         for (const s of leg.steps) {
           const maneuver = s.maneuver;
           steps.push({
             instruction:  buildInstruction(maneuver.type, maneuver.modifier, s.name),
-            distance:     s.distance,   // metres
-            duration:     s.duration,   // seconds
+            distance:     s.distance,
+            duration:     s.duration,
             maneuverType: maneuver.type,
             modifier:     maneuver.modifier ?? '',
             lat:          maneuver.location[1],
@@ -227,11 +262,12 @@ export default function MapView({
   return (
     <div ref={containerRef} style={{ flex: 1, height: '100%', zIndex: 1, minHeight: 0 }} />
   );
-}
+});
+
+export default MapView;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-/** Convert OSRM maneuver type + modifier into a human-readable instruction */
 function buildInstruction(type: string, modifier?: string, name?: string): string {
   const road = name && name !== '' ? ` onto ${name}` : '';
   switch (type) {
@@ -280,8 +316,6 @@ function buildPopup(plot: Plot) {
       </button>
     </div>`;
 }
-
-// ── OSRM types ────────────────────────────────────────────────────────────────
 
 interface OsrmResponse {
   code: string;
