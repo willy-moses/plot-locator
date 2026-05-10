@@ -88,7 +88,7 @@ export default function MapView({
       userMarkerRef.current?.remove();
       userMarkerRef.current = L.circleMarker(
         [userLocation.lat, userLocation.lng],
-        { radius: 9, fillColor: '#378ADD', color: 'white', weight: 3, fillOpacity: 1, zIndexOffset: 1000 },
+        { radius: 9, fillColor: '#378ADD', color: 'white', weight: 3, fillOpacity: 1 },
       ).addTo(map).bindPopup('<b>📍 You are here</b>');
       if (markerRefs.current.size === 0) {
         map.setView([userLocation.lat, userLocation.lng], 13, { animate: true });
